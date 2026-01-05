@@ -14,6 +14,8 @@ from ultralytics import YOLO
 engine = pyttsx3.init()
 spoken_objects_global = set() 
 last_speak_time = 0 
+detection_start_time = {}      # to track when each object first appeared
+CONFIRMATION_TIME = 2.0        # the confirmation time of object. 
 def speak(text):
     engine.say(text)
     engine.runAndWait()
@@ -142,13 +144,23 @@ def main():
             classname = labels[int(det.cls.item())]
             current_frame_objects.add(classname)
 
-        # Speak for new objects while limiting to at most oness per sec only.
-        if time.time() - last_speak_time > 1.0:
-            for classname in current_frame_objects:
-                if classname not in spoken_objects_global:
-                    speak(f"Detected {classname}")
-                    spoken_objects_global.add(classname)
-            last_speak_time = time.time()
+        current_time = time.time()
+
+        # Adding new objects with the current timestamp
+        for obj in current_frame_objects:
+            if obj not in detection_start_time:
+                detection_start_time[obj] = current_time
+
+        # Removing objects that leave the frame
+        for obj in list(detection_start_time.keys()):
+            if obj not in current_frame_objects:
+                detection_start_time.pop(obj)
+
+        # Speak for new objects only after confirming.
+        for obj, start_time in detection_start_time.items():
+            if obj not in spoken_objects_global and (current_time - start_time) >= CONFIRMATION_TIME:
+                speak(f"Detected {obj}")
+                spoken_objects_global.add(obj)
 
         # Removeing the objects that leave the frame
         spoken_objects_global = spoken_objects_global.intersection(current_frame_objects)
