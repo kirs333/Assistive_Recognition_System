@@ -15,7 +15,7 @@ engine = pyttsx3.init()
 spoken_objects_global = set() 
 last_speak_time = 0 
 detection_start_time = {}      # to track when each object first appeared
-CONFIRMATION_TIME = 2.0        # the confirmation time of object. 
+CONFIRMATION_TIME = 1.0        # the confirmation time of object. 
 def speak(text):
     engine.say(text)
     engine.runAndWait()
@@ -118,6 +118,10 @@ def main():
         if resize:
             frame = cv2.resize(frame, (resW,resH))
 
+        frame_width = frame.shape[1]
+        left_zone = frame_width / 3
+        right_zone = 2 * frame_width / 3
+
         # YOLO inference
         results = model(frame, verbose=False)
         detections = results[0].boxes
@@ -159,7 +163,23 @@ def main():
         # Speak for new objects only after confirming.
         for obj, start_time in detection_start_time.items():
             if obj not in spoken_objects_global and (current_time - start_time) >= CONFIRMATION_TIME:
-                speak(f"Detected {obj}")
+                # Find its bounding box in current detections
+                for det in detections:
+                    classname = labels[int(det.cls.item())]
+                    if classname == obj:
+                        xyxy = det.xyxy.cpu().numpy().squeeze().astype(int)
+                        xmin, ymin, xmax, ymax = xyxy
+                        x_center = (xmin + xmax) / 2
+                        if x_center < left_zone:
+                            position = "left"
+                        elif x_center > right_zone:
+                            position = "right"
+                        else:
+                            position = "center"
+                        break
+
+                # Speak object + position
+                speak(f"Detected {obj} on the {position}")
                 spoken_objects_global.add(obj)
 
         # Removeing the objects that leave the frame
