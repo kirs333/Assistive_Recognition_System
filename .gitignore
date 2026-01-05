@@ -1,0 +1,7 @@
+Data/
+
+__pycache__/
+*.pyc
+
+*.pt
+*.zip
