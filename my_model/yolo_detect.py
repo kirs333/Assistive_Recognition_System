@@ -14,6 +14,8 @@ import speech_recognition as sr
 
 import pytesseract
 
+import queue
+
 
 # text to speech engine initialization
 engine = pyttsx3.init()
@@ -36,10 +38,26 @@ COMMAND_TIMEOUT = 5.0
 voice_command = None
 voice_command_lock = threading.Lock()
 
-#speak engine
+
+tts_queue = queue.Queue() #queue for text to speech cause multiple overlaping 
+
+#adding waiting tts worker
+def tts_worker():
+    while True:
+        text = tts_queue.get()
+        if text is None:
+            break
+        engine.say(text)
+        engine.runAndWait()
+        tts_queue.task_done()
+
+#tts worker thread
+tts_thread = threading.Thread(target=tts_worker, daemon=True)
+tts_thread.start()
+
+#speak engine that now uses the tts queue
 def speak(text):
-    engine.say(text)
-    engine.runAndWait()
+    tts_queue.put(text)
 
 # Voice command listener
 def listen_for_commands():
@@ -67,10 +85,19 @@ def listen_for_commands():
 
 def do_ocr_on_object(frame, bbox):
     xmin, ymin, xmax, ymax = bbox
-    # Crop the detected object area from the frame
     crop_img = frame[ymin:ymax, xmin:xmax]
-    # Use pytesseract to extract text from cropped image
-    text = pytesseract.image_to_string(crop_img)
+    gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
+    # Adaptive thresholding for better contrast
+    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    text = pytesseract.image_to_string(thresh)
+    return text.strip()
+
+#doing ocr on cropped image
+
+def do_ocr_on_cropped_image(crop_img):
+    gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
+    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    text = pytesseract.image_to_string(thresh)
     return text.strip()
 
 def main():
@@ -284,7 +311,14 @@ def main():
         state_color = (0, 255, 0) if current_state == STATE_SCAN else (0, 0, 255)
         cv2.putText(frame, state_text, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.8, state_color, 2)
 
+        if current_state == STATE_GUIDE and active_object_bbox is not None:
+            xmin, ymin, xmax, ymax = active_object_bbox
+            text = do_ocr_on_object(frame, active_object_bbox)
+            if text:
+                cv2.putText(frame, text, (xmin, ymin - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
+
         cv2.imshow("YOLO Detection", frame)
+
         if record:
             recorder.write(frame)
 
@@ -349,20 +383,16 @@ def main():
                             active_object_bbox = det.xyxy.cpu().numpy().squeeze().astype(int)
                             break
             elif "read" in cmd:
+                print("[DEBUG] Read command received")
                 if current_state == STATE_GUIDE and active_object and active_object_bbox is not None:
                     xmin, ymin, xmax, ymax = active_object_bbox
-                    bbox_area = (xmax - xmin) * (ymax - ymin)
-                    frame_area = frame.shape[0] * frame.shape[1]
-                    area_ratio = bbox_area / frame_area
-                    
-                    if area_ratio > 0.01:
-                        text = do_ocr_on_object(frame, active_object_bbox)
-                        if text:
-                            speak(f"Reading text: {text}")
-                        else:
-                            speak("No text detected.")
+                    crop_img = frame[ymin:ymax, xmin:xmax]
+                    cv2.imwrite("crop_capture.png", crop_img)  # saveing the image to check if reading correctly or not
+                    text = do_ocr_on_cropped_image(crop_img)
+                    if text and text.strip():
+                        speak(f"Reading text: {text}")
                     else:
-                        speak("Please bring the object closer to read the text.")
+                        speak("No text detected.")
                 else:
                     speak("Please enter guide mode and select an object to read.")
 
