@@ -230,6 +230,11 @@ def main():
             cv2.putText(frame, f'FPS: {avg_fps:.2f}', (10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,255), 2)
         cv2.putText(frame, f'Objects: {obj_count}', (10,40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,255), 2)
 
+
+        state_text = "STATE: SCAN" if current_state == STATE_SCAN else "STATE: GUIDE"
+        state_color = (0, 255, 0) if current_state == STATE_SCAN else (0, 0, 255)
+        cv2.putText(frame, state_text, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.8, state_color, 2)
+
         cv2.imshow("YOLO Detection", frame)
         if record:
             recorder.write(frame)
