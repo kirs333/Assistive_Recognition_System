@@ -16,8 +16,6 @@ import pytesseract
 
 import queue
 
-
-# For closed vocabulary command recognition. 
 CMD_SCAN   = "SCAN"
 CMD_GUIDE  = "GUIDE"
 CMD_SELECT = "SELECT"
@@ -41,7 +39,7 @@ COMMAND_VOCAB = {
 COMMAND_COOLDOWN = 2.5  # seconds between commands
 last_command_time = 0
 
-#Command resolver
+#command resolver
 def resolve_command(text):
     """
     Converts free-form speech text to a fixed command or None.
@@ -93,6 +91,8 @@ voice_command_lock = threading.Lock()
 
 tts_queue = queue.Queue() #queue for text to speech cause multiple overlaping 
 
+is_speaking = False
+
 # tts engine
 def tts_worker():
     while True:
@@ -111,7 +111,7 @@ tts_thread.start()
 def speak(text):
     tts_queue.put(text)
 
-
+#voice command listener thread
 def listen_for_commands():
     recognizer = sr.Recognizer()
     mic = sr.Microphone()
@@ -144,16 +144,42 @@ def listen_for_commands():
             print(f"Recognition error; {e}")
 
 
+
 def do_ocr_on_object(frame, bbox):
     xmin, ymin, xmax, ymax = bbox
     crop_img = frame[ymin:ymax, xmin:xmax]
+    # Converting  to grayscale
     gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
-    text = pytesseract.image_to_string(gray)
+    
+    # Apply preprocessing for better OCR
+    gray = cv2.equalizeHist(gray) #increase contrast
+    
+    gray = cv2.fastNlMeansDenoising(gray, h=10) #denoising
+    
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU) #thresholding 
+    
+    text = pytesseract.image_to_string(thresh, config='--psm 6')
+    
+    #fallback to original greyscale
+    if not text.strip():
+        text = pytesseract.image_to_string(gray, config='--psm 6')
+    
     return text.strip()
 
 def do_ocr_on_cropped_image(crop_img):
+    # Converting to grayscale
     gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
-    text = pytesseract.image_to_string(gray) 
+    
+    gray = cv2.equalizeHist(gray)
+    gray = cv2.fastNlMeansDenoising(gray, h=10)
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    text = pytesseract.image_to_string(thresh, config='--psm 6')
+    
+    # Fallback to original
+    if not text.strip():
+        text = pytesseract.image_to_string(gray, config='--psm 6')
+    
     return text.strip()
 
 def main():
@@ -395,7 +421,7 @@ def main():
                 frame_area = frame.shape[0] * frame.shape[1]
                 area_ratio = bbox_area / frame_area
 
-                if area_ratio > 0.01:
+                if area_ratio > 0.5:
                     text = do_ocr_on_object(frame, active_object_bbox)
                     if text:
                         speak(f"Reading text: {text}")
@@ -406,7 +432,7 @@ def main():
             else:
                 speak("Please enter guide mode and select an object to read.")
 
-        #Determining commands
+        # deterministic command handeling
         with voice_command_lock:
             cmd = voice_command
             voice_command = None  # reset after reading
@@ -442,30 +468,89 @@ def main():
                     speak("No objects detected")
 
             elif cmd == CMD_READ:
-                print(f"READ command triggered")
-                print(f"current_state = {current_state} (STATE_GUIDE={STATE_GUIDE})")
-                print(f"ctive_object = {active_object}")
-                print(f"active_object_bbox = {active_object_bbox}")
+                print(f" READ command triggered")
+                print(f" current_state = {current_state} (STATE_GUIDE={STATE_GUIDE})")
+                print(f" active_object = {active_object}")
+                print(f" active_object_bbox = {active_object_bbox}")
                 
                 if current_state == STATE_GUIDE and active_object_bbox is not None:
-                    print(f"Performing OCR on bbox: {active_object_bbox}")
+                    # Check if object is large enough (close enough to camera)
+                    current_bbox = None
+                    for det in detections:
+                        if labels[int(det.cls.item())] == active_object:
+                            current_bbox = det.xyxy.cpu().numpy().squeeze().astype(int)
+                            break
+
+                    if current_bbox is None:
+                        speak("Object not visible")
+                        print(" Object not visible in current frame")
+                        continue 
+
+                    xmin, ymin, xmax, ymax = current_bbox
+                    bbox_area = (xmax - xmin) * (ymax - ymin)
+                    frame_area = frame.shape[0] * frame.shape[1]
+                    area_ratio = bbox_area / frame_area
                     
-                    # Saving cropped image for debugging casue OCR is still having issue. /////////
-                    xmin, ymin, xmax, ymax = active_object_bbox
-                    crop_img = frame[ymin:ymax, xmin:xmax]
-                    cv2.imwrite("crop_capture.png", crop_img)
-                    print(f"Saved crop_capture.png ({crop_img.shape})")
+                    print(f" Area ratio: {area_ratio:.3f}")
                     
-                    text = do_ocr_on_object(frame, active_object_bbox)
-                    print(f"OCR result: '{text}'")
-                    print(f"OCR result length: {len(text) if text else 0}")
-                    
-                    if text and text.strip():
-                        speak(f"Reading text: {text}")
-                        print(f"Speaking: Reading text: {text}")
+                    if area_ratio < 0.20:
+                        speak("Please bring the object closer to read")
+                        print(f" Object too far (area_ratio={area_ratio:.3f})")
+
+                    elif area_ratio > 0.55:
+                        speak("Move the object slightly away")
+                        print(f" Object too close (area_ratio={area_ratio:.3f})")
+
                     else:
-                        speak("No text detected")
-                        print(f"Speaking: No text detected")
+                        speak("Reading... Hold steady")
+                        print(" Capturing multiple frames for better OCR...")
+                        
+                        # Captureing multiple frames for better OCR
+                        ocr_results = []
+                        for attempt in range(5):
+                            # Getting fresh frame
+                            if source_type in ['video','usb']:
+                                ret, fresh_frame = cap.read()
+                                if not ret:
+                                    break
+                                if resize:
+                                    fresh_frame = cv2.resize(fresh_frame, (resW, resH))
+                                
+                                # Running YOLO to the update bbox
+                                fresh_results = model(fresh_frame, verbose=False)
+                                fresh_detections = fresh_results[0].boxes
+                                
+                                # Finding the same object in new frame
+                                for det in fresh_detections:
+                                    if labels[int(det.cls.item())] == active_object:
+                                        fresh_bbox = det.xyxy.cpu().numpy().squeeze().astype(int)
+                                        text = do_ocr_on_object(fresh_frame, fresh_bbox)
+                                        if text and len(text) > 3:  # Only keep meaningful results
+                                            ocr_results.append(text)
+                                            print(f"[] Attempt {attempt+1}: '{text}' (len={len(text)})")
+                                        break
+                            else:
+                                # For static images, just trying once
+                                text = do_ocr_on_object(frame, active_object_bbox)
+                                if text:
+                                    ocr_results.append(text)
+                                break
+                        
+                        # Choosing the longest result
+                        if ocr_results:
+                            best_text = max(ocr_results, key=len)
+                            print(f"Best OCR result: '{best_text}'")
+                            
+                            # Save last cropped image for ging
+                            crop_img = frame[ymin:ymax, xmin:xmax]
+                            cv2.imwrite("crop_capture.png", crop_img)
+                            print(f"Saved crop_capture.png ({crop_img.shape})")
+                            
+                            speak(f"Reading text: {best_text}")
+                            print(f"Speaking: Reading text: {best_text}")
+                        else:
+                            speak("No text detected. Try holding the object steady")
+                            print(f"Speaking: No text detected")
                 else:
                     speak("Select an object first")
                     print(f"Speaking: Select an object first")
