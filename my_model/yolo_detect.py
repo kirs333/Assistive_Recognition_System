@@ -20,6 +20,13 @@ CONFIRMATION_TIME = 1.0
 Frame_Guidance_Cooldown = 1.5   # second between guidance for same obj
 last_guidance_time = {}
 
+STATE_SCAN = 0     
+STATE_GUIDE = 1        
+current_state = STATE_SCAN
+
+
+COMMAND_TIMEOUT = 5.0
+
 def speak(text):
     engine.say(text)
     engine.runAndWait()
@@ -100,7 +107,7 @@ def main():
     img_count = 0
 
 
-    global last_speak_time, spoken_objects_global
+    global last_speak_time, spoken_objects_global, current_state, active_object, active_object_last_seen
 
     while True:
         t_start = time.perf_counter()
@@ -165,50 +172,57 @@ def main():
                 detection_start_time.pop(obj)
 
         # Speak for new objects only after confirming.
-        for obj, start_time in detection_start_time.items():
-            if obj not in spoken_objects_global and (current_time - start_time) >= CONFIRMATION_TIME:
-                # Find its bounding box in current detections
-                for det in detections:
-                    classname = labels[int(det.cls.item())]
-                    if classname == obj:
-                        xyxy = det.xyxy.cpu().numpy().squeeze().astype(int)
-                        xmin, ymin, xmax, ymax = xyxy
-                        x_center = (xmin + xmax) / 2
-                        if x_center < left_zone:
-                            position = "left"
-                        elif x_center > right_zone:
-                            position = "right"
-                        else:
-                            position = "center"
-                        break
+        if current_state == STATE_SCAN:
+            for obj, start_time in detection_start_time.items():
+                if obj not in spoken_objects_global and (current_time - start_time) >= CONFIRMATION_TIME:
+                    # Find its bounding box in current detections
+                    for det in detections:
+                        classname = labels[int(det.cls.item())]
+                        if classname == obj:
+                            xyxy = det.xyxy.cpu().numpy().squeeze().astype(int)
+                            xmin, ymin, xmax, ymax = xyxy
+                            x_center = (xmin + xmax) / 2
+                            if x_center < left_zone:
+                                position = "left"
+                            elif x_center > right_zone:
+                                position = "right"
+                            else:
+                                position = "center"
+                            break
 
-                # Speak object + position
-                speak(f"Detected {obj} on the {position}")
+                    # Speak object + position
+                    speak(f"Detected {obj} on the {position}")
 
+                    spoken_objects_global.add(obj)
 
-                #requesting to bring closer or move away
+        # Removeing the objects that leave the frame
+        spoken_objects_global = spoken_objects_global.intersection(current_frame_objects)
+
+        if current_state == STATE_GUIDE:
+            now = time.time()
+            for det in detections:
+                classname = labels[int(det.cls.item())]
+                conf = det.conf.item()
+                if conf < conf_thresh:
+                    continue
+                xyxy = det.xyxy.cpu().numpy().squeeze().astype(int)
+                xmin, ymin, xmax, ymax = xyxy
+
                 frame_height, frame_width = frame.shape[:2]
                 bbox_area = (xmax - xmin) * (ymax - ymin)
                 frame_area = frame_width * frame_height
                 area_ratio = bbox_area / frame_area
 
-                now = time.time()
-                last_time = last_guidance_time.get(obj, 0)
+                last_time = last_guidance_time.get(classname, 0)
 
                 if now - last_time > Frame_Guidance_Cooldown:
                     if area_ratio < 0.20:
-                        speak("Move the medicine closer.")
+                        speak(f"Move the {classname} closer.")
                     elif area_ratio > 0.55:
-                        speak("Move slightly away.")
+                        speak(f"Move the {classname} slightly away.")
                     else:
-                        speak("Hold steady. Reading label.")
-                    last_guidance_time[obj] = now
-
-                spoken_objects_global.add(obj)
-                break  # Speak only one new object per frame
-
-        # Removeing the objects that leave the frame
-        spoken_objects_global = spoken_objects_global.intersection(current_frame_objects)
+                        speak(f"Hold steady on the {classname}.")
+                    last_guidance_time[classname] = now
 
         # Draw FPS and object count
         if source_type in ['video','usb']:
@@ -220,11 +234,20 @@ def main():
         if record:
             recorder.write(frame)
 
-        key = cv2.waitKey(1 if source_type in ['video','usb'] else 0)
+        key = cv2.waitKey(1 if source_type in ['video','usb'] else 0) & 0xFF
         if key in [ord('q'), ord('Q')]:
             break
         elif key in [ord('p'), ord('P')]:
             cv2.imwrite('capture.png', frame)
+        elif key == ord('g'):  # press 'g' to enter guide mode
+            current_state = STATE_GUIDE
+            last_guidance_time.clear()
+            speak("Entering guide mode.")
+        elif key == ord('s'):  # press 's' to return to scan mode
+            current_state = STATE_SCAN
+            last_guidance_time.clear()
+            speak("Returning to scan mode.")
+
 
         # Update FPS buffer
         t_stop = time.perf_counter()
