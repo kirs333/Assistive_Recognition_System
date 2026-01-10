@@ -541,11 +541,6 @@ def main():
                             best_text = max(ocr_results, key=len)
                             print(f"Best OCR result: '{best_text}'")
                             
-                            # Save last cropped image for ging
-                            crop_img = frame[ymin:ymax, xmin:xmax]
-                            cv2.imwrite("crop_capture.png", crop_img)
-                            print(f"Saved crop_capture.png ({crop_img.shape})")
-                            
                             speak(f"Reading text: {best_text}")
                             print(f"Speaking: Reading text: {best_text}")
                         else:
