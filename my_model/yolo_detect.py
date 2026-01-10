@@ -12,6 +12,8 @@ from ultralytics import YOLO
 import threading
 import speech_recognition as sr
 
+import pytesseract
+
 
 # text to speech engine initialization
 engine = pyttsx3.init()
@@ -62,6 +64,14 @@ def listen_for_commands():
             print("Could not understand audio")
         except sr.RequestError as e:
             print(f"Recognition error; {e}")
+
+def do_ocr_on_object(frame, bbox):
+    xmin, ymin, xmax, ymax = bbox
+    # Crop the detected object area from the frame
+    crop_img = frame[ymin:ymax, xmin:xmax]
+    # Use pytesseract to extract text from cropped image
+    text = pytesseract.image_to_string(crop_img)
+    return text.strip()
 
 def main():
     parser = argparse.ArgumentParser(description="YOLOv8 Detection")
@@ -143,6 +153,9 @@ def main():
     # Starting the voice command listener thread
     listener_thread = threading.Thread(target=listen_for_commands, daemon=True)
     listener_thread.start()
+
+    active_object = None
+    active_object_bbox = None
 
 
     while True:
@@ -288,6 +301,23 @@ def main():
             current_state = STATE_SCAN
             last_guidance_time.clear()
             speak("Returning to scan mode.")
+        elif key == ord('r'):
+            if current_state == STATE_GUIDE and active_object and active_object_bbox is not None:
+                xmin, ymin, xmax, ymax = active_object_bbox
+                bbox_area = (xmax - xmin) * (ymax - ymin)
+                frame_area = frame.shape[0] * frame.shape[1]
+                area_ratio = bbox_area / frame_area
+
+                if area_ratio > 0.5:
+                    text = do_ocr_on_object(frame, active_object_bbox)
+                    if text:
+                        speak(f"Reading text: {text}")
+                    else:
+                        speak("No text detected.")
+                else:
+                    speak("Please bring the object closer to read the text.")
+            else:
+                speak("Please enter guide mode and select an object to read.")
 
 
 
@@ -311,6 +341,30 @@ def main():
                     current_state = STATE_GUIDE
                     last_guidance_time.clear()
                     speak(f"Guiding {active_object}. Please bring it closer.")
+
+                    active_object_bbox = None
+                    for det in detections:
+                        classname = labels[int(det.cls.item())]
+                        if classname == active_object:
+                            active_object_bbox = det.xyxy.cpu().numpy().squeeze().astype(int)
+                            break
+            elif "read" in cmd:
+                if current_state == STATE_GUIDE and active_object and active_object_bbox is not None:
+                    xmin, ymin, xmax, ymax = active_object_bbox
+                    bbox_area = (xmax - xmin) * (ymax - ymin)
+                    frame_area = frame.shape[0] * frame.shape[1]
+                    area_ratio = bbox_area / frame_area
+
+                    if area_ratio > 0.5:
+                        text = do_ocr_on_object(frame, active_object_bbox)
+                        if text:
+                            speak(f"Reading text: {text}")
+                        else:
+                            speak("No text detected.")
+                    else:
+                        speak("Please bring the object closer to read the text.")
+                else:
+                    speak("Please enter guide mode and select an object to read.")
 
 
         # Update FPS buffer
