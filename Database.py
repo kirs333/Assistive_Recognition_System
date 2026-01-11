@@ -136,3 +136,5 @@ if __name__ == "__main__":
     print("Database initialized successfully")
 
 
+    db.add_schedule(1, "08:00", "After food", "Morning dose")
+    print("Schedule added for medicine 1")
