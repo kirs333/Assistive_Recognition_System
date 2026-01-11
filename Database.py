@@ -217,9 +217,11 @@ class MedicineDatabaseGUI:
         self.root.geometry("1000x700")
         
         self.setup_ui()
+        
+        self.setup_list_tab()
     
     def setup_ui(self):
-        
+
         # Main container
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -239,6 +241,82 @@ class MedicineDatabaseGUI:
         # The status bar
         self.status_bar = tk.Label(self.root, text="Ready", bd=1, relief=tk.SUNKEN, anchor=tk.W)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+    def setup_list_tab(self):
+        # Search frame
+        search_frame = tk.Frame(self.list_tab)
+        search_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        tk.Label(search_frame, text="Search:").pack(side=tk.LEFT, padx=5)
+        self.search_entry = tk.Entry(search_frame, width=40)
+        self.search_entry.pack(side=tk.LEFT, padx=5)
+        self.search_entry.bind('<KeyRelease>', lambda e: self.search_medicines())
+        
+        tk.Button(search_frame, text="Clear", command=self.clear_search).pack(side=tk.LEFT, padx=5)
+        tk.Button(search_frame, text="Refresh", command=self.refresh_medicine_list).pack(side=tk.LEFT, padx=5)
+        
+        # Medicine list frame
+        list_frame = tk.Frame(self.list_tab)
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # Tree view for medicine list
+        columns = ("ID", "Name", "Dosage", "Form", "Frequency")
+        self.medicine_tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
+        
+        for col in columns:
+            self.medicine_tree.heading(col, text=col)
+            if col == "ID":
+                self.medicine_tree.column(col, width=50)
+            elif col == "Name":
+                self.medicine_tree.column(col, width=200)
+            else:
+                self.medicine_tree.column(col, width=150)
+        
+        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.medicine_tree.yview)
+        self.medicine_tree.configure(yscroll=scrollbar.set)
+        
+        self.medicine_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.medicine_tree.bind('<Double-1>', self.on_medicine_double_click)
+        
+        # All the action buttons
+        button_frame = tk.Frame(self.list_tab)
+        button_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        tk.Button(button_frame, text="View Details", command=self.view_medicine_details, bg="#4CAF50", fg="white").pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Edit", command=self.edit_selected_medicine,bg="#2196F3", fg="white").pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Delete", command=self.delete_selected_medicine,bg="#f44336", fg="white").pack(side=tk.LEFT, padx=5)
+        
+        # Displaying the medicine details
+        details_frame = tk.LabelFrame(self.list_tab, text="Medicine Details", padx=10, pady=10)
+        details_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        from tkinter import scrolledtext
+        self.details_text = scrolledtext.ScrolledText(details_frame, height=8, wrap=tk.WORD)
+        self.details_text.pack(fill=tk.BOTH, expand=True)
+
+    #Buttons functionalities will add how they work but for now just for asthetics and design confirmation
+    def refresh_medicine_list(self):
+        pass
+    
+    def search_medicines(self):
+        pass
+    
+    def clear_search(self):
+        pass
+    
+    def on_medicine_double_click(self, event):
+        pass
+    
+    def view_medicine_details(self):
+        pass
+    
+    def edit_selected_medicine(self):
+        pass
+    
+    def delete_selected_medicine(self):
+        pass
 
 
 if __name__ == "__main__":
