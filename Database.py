@@ -157,3 +157,11 @@ if __name__ == "__main__":
     db = MedicineDatabase()
     print("Database initialized successfully")
 
+        
+    db.add_schedule(1, "08:00", "After food", "Morning dose")
+
+    medicine_id = 1
+    schedules = db.get_schedules_for_medicine(medicine_id)
+    print(f"Schedules for medicine ID {medicine_id}: {schedules}")
+
+
