@@ -195,3 +195,6 @@ class MedicineDatabase:
 if __name__ == "__main__":
     db = MedicineDatabase()
     print("Database initialized successfully")
+
+    results = db.search_medicine_by_name("Aspirin")
+    print(f"Search results: {len(results)}")
