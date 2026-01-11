@@ -92,9 +92,20 @@ class MedicineDatabase:
         conn.close()
 
 
+    # taking the medicine with their id
+    def get_medicine_by_id(self, medicine_id):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM medicines WHERE id = ?', (medicine_id,))
+        medicine = cursor.fetchone()
+        
+        conn.close()
+        return medicine
+
 if __name__ == "__main__":
     db = MedicineDatabase()
     print("Database initialized successfully")
 
-    db.update_medicine(1, "Aspirin", "500mg", "Tablet", "Once daily", "Updated notes", "Acetylsalicylic acid")
-    print(f"✓ Updated medicine ID: {1}")
+    medicine = db.get_medicine_by_id(1)
+    print(f"Retrieved medicine: {medicine[1]}")
