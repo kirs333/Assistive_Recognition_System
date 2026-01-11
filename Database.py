@@ -54,8 +54,24 @@ class MedicineDatabase:
         conn.close()
 
 
-# Test the database creation
+    def add_medicine(self, name, dosage="", form="", frequency="", notes="", active_ingredients=""):
+        """Add a new medicine to the database"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO medicines (medicine_name, dosage, form, frequency, notes, active_ingredients)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (name, dosage, form, frequency, notes, active_ingredients))
+        
+        medicine_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return medicine_id
+
 if __name__ == "__main__":
     db = MedicineDatabase()
     print("Database initialized successfully")
-    print("Tables created: medicines, intake_schedule, intake_history")
+
+    med_id = db.add_medicine("Aspirin", "500mg", "Tablet", "Twice daily", "For headaches", "Acetylsalicylic acid")
+    print(f" Successfully Added medicine with ID: {med_id}")
