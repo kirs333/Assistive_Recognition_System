@@ -141,12 +141,19 @@ class MedicineDatabase:
         conn.commit()
         conn.close()
 
+    # getting schedule for a medicine
+    def get_schedules_for_medicine(self, medicine_id):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM intake_schedule WHERE medicine_id = ?', (medicine_id,))
+        schedules = cursor.fetchall()
+        
+        conn.close()
+        return schedules
+
 
 if __name__ == "__main__":
     db = MedicineDatabase()
     print("Database initialized successfully")
 
-
-    schedule_id = 1
-    db.delete_schedule(schedule_id)
-    print(f"Schedule deleted (id={schedule_id})")
