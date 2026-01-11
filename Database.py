@@ -175,3 +175,13 @@ if __name__ == "__main__":
     db = MedicineDatabase()
     print("Database initialized successfully")
 
+    schedules = db.get_current_schedule()
+
+    print("Returned schedules:")
+    for row in schedules:
+        print(row)
+
+    # Basic validation
+    assert len(schedules) > 0, "No schedules returned"
+    assert row[-3] in ("08:00"), "Time not there add time"
+
