@@ -113,11 +113,26 @@ class MedicineDatabase:
         
         conn.close()
         return medicines
+    
+
+    # ---- 
+    
+    # schedule for medicine intake
+    def add_schedule(self, medicine_id, time_of_day, with_food="No preference", special_instructions=""):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO intake_schedule (medicine_id, time_of_day, with_food, special_instructions)
+            VALUES (?, ?, ?, ?)
+        ''', (medicine_id, time_of_day, with_food, special_instructions))
+        
+        conn.commit()
+        conn.close()
 
 
 if __name__ == "__main__":
     db = MedicineDatabase()
     print("Database initialized successfully")
 
-    all_meds = db.get_all_medicines()
-    print(f"Total medicines in database: {len(all_meds)}")
+
