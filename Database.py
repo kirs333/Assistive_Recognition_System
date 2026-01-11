@@ -106,6 +106,3 @@ class MedicineDatabase:
 if __name__ == "__main__":
     db = MedicineDatabase()
     print("Database initialized successfully")
-
-    medicine = db.get_medicine_by_id(1)
-    print(f"Retrieved medicine: {medicine[1]}")
