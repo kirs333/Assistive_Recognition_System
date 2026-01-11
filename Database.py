@@ -76,11 +76,25 @@ class MedicineDatabase:
         conn.commit()
         conn.close()
 
+    # updating details of a medicine
+    def update_medicine(self, medicine_id, name, dosage, form, frequency, notes, active_ingredients):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE medicines 
+            SET medicine_name = ?, dosage = ?, form = ?, frequency = ?, 
+                notes = ?, active_ingredients = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (name, dosage, form, frequency, notes, active_ingredients, medicine_id))
+        
+        conn.commit()
+        conn.close()
 
 
 if __name__ == "__main__":
     db = MedicineDatabase()
     print("Database initialized successfully")
 
-    med_id = db.add_medicine("Aspirin", "500mg", "Tablet", "Twice daily", "For headaches", "Acetylsalicylic acid")
-    print(f" Successfully Added medicine with ID: {med_id}")
+    db.update_medicine(1, "Aspirin", "500mg", "Tablet", "Once daily", "Updated notes", "Acetylsalicylic acid")
+    print(f"✓ Updated medicine ID: {1}")
