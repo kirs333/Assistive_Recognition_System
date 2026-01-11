@@ -27,10 +27,11 @@ function VideoDisplay({ frameData }) {
     img.src = `data:image/jpeg;base64,${frameData.image}`;
 
     img.onload = () => {
+      console.log("Image loaded:", img.width, img.height);
       canvas.width = img.width;
       canvas.height = img.height;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       if (frameData.detections && frameData.detections.length > 0) {
         frameData.detections.forEach((detection) => {

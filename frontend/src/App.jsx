@@ -27,17 +27,18 @@ function App() {
     },
   });
 
-  // Handle incoming messages
+  // Handleing incoming messages
   useEffect(() => {
     if (!lastMessage) return;
 
     try {
       const data = JSON.parse(lastMessage);
+      console.log("Incoming frameData:", data);
 
       if (data.type === "frame") {
         setFrameData(data);
       } else if (data.type === "tts" && ttsEnabled) {
-        // Use browser's Speech Synthesis API
+        // Using browser's Speech Synthesis API
         const utterance = new SpeechSynthesisUtterance(data.text);
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
