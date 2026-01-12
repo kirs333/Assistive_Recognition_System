@@ -381,15 +381,17 @@ class VisionAssistantGUI:
         self.conf_value_label.pack(padx=15, pady=(0, 15))
         
         # Actions
-        actions_frame = tk.LabelFrame(left_panel, text="Actions", bg="#f0f0f0")
-        actions_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        tk.Button(actions_frame, text="Select Object", command=self.select_object).pack(fill=tk.X, padx=5, pady=2)
-        tk.Button(actions_frame, text="Read Text (OCR)", command=self.read_text, bg="#4169E1", fg="white").pack(fill=tk.X, padx=5, pady=2)
-        tk.Button(actions_frame, text="Test OCR (Full Frame)", command=self.test_ocr_full_frame).pack(fill=tk.X, padx=5, pady=2)
-        tk.Button(actions_frame, text="Capture Image", command=self.capture_image).pack(fill=tk.X, padx=5, pady=2)
-        tk.Button(actions_frame, text="Verify Medicine", command=self.verify_medicine, bg="#FF6B35", fg="white", font=("Arial", 9, "bold")).pack(fill=tk.X, padx=5, pady=2)
-        
+        actions_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        actions_frame.pack(fill=tk.X, pady=(0, 15))
+
+        ctk.CTkLabel(actions_frame, text="Actions",font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10), padx=15, anchor="w")
+
+        ctk.CTkButton(actions_frame, text="Select Object",command=self.select_object,height=35,corner_radius=8,font=ctk.CTkFont(size=13)).pack(fill=tk.X, padx=15, pady=(0, 5))
+        ctk.CTkButton(actions_frame, text="Read Text (OCR)",command=self.read_text,height=35,corner_radius=8,font=ctk.CTkFont(size=13)).pack(fill=tk.X, padx=15, pady=(0, 5))
+        ctk.CTkButton(actions_frame, text="Test OCR (Full Frame)",command=self.test_ocr_full_frame,height=35,corner_radius=8,font=ctk.CTkFont(size=13)).pack(fill=tk.X, padx=15, pady=(0, 5))
+        ctk.CTkButton(actions_frame, text="Capture Image",command=self.capture_image,height=35,corner_radius=8,font=ctk.CTkFont(size=13)).pack(fill=tk.X, padx=15, pady=(0, 5))
+        ctk.CTkButton(actions_frame, text="Verify Medicine",command=self.verify_medicine,height=35,corner_radius=8,font=ctk.CTkFont(size=13, weight="bold")).pack(fill=tk.X, padx=15, pady=(0, 15))
+                
         # Detected Objects List
         objects_frame = tk.LabelFrame(left_panel, text="Detected Objects", bg="#f0f0f0")
         objects_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
