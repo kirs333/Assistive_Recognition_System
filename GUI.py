@@ -892,6 +892,8 @@ class VisionAssistantGUI:
                 self.handle_select_command()
             elif cmd == CMD_READ:
                 self.handle_read_command()
+            elif cmd == CMD_VERIFY:
+                self.verify_medicine()
         
         # Displaying the frame
         frame_rgb = cv2.cvtColor(frame_display, cv2.COLOR_BGR2RGB)
