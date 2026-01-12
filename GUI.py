@@ -327,14 +327,20 @@ class VisionAssistantGUI:
 
         subtitle_label = ctk.CTkLabel(title_frame, text="AI-Powered Object Detection & OCR",font=ctk.CTkFont(size=12),text_color=("gray60", "gray50"))
         subtitle_label.pack()
+
+        # -----Scrollable section for all left ccontrols-----
+        scrollable_frame = ctk.CTkScrollableFrame(left_panel, fg_color="transparent")
+        scrollable_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
         
         # Model Selection menu
-        model_frame = tk.LabelFrame(left_panel, text="Model", bg="#f0f0f0")
-        model_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        tk.Button(model_frame, text="Load Model", command=self.load_model).pack(fill=tk.X, padx=5, pady=5)
-        self.model_label = tk.Label(model_frame, text="No model loaded", bg="#f0f0f0", fg="red")
-        self.model_label.pack(padx=5, pady=2)
+        model_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        model_frame.pack(fill=tk.X, pady=(0, 15))
+
+        ctk.CTkLabel(model_frame, text="Model", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10), padx=15, anchor="w")
+        ctk.CTkButton(model_frame, text="Load Model", command=self.load_model,height=35,corner_radius=8,font=ctk.CTkFont(size=13)).pack(fill=tk.X, padx=15, pady=(0, 5))
+
+        self.model_label = ctk.CTkLabel(model_frame, text="No model loaded",text_color=("red", "pink"),font=ctk.CTkFont(size=11))
+        self.model_label.pack(padx=15, pady=(0, 15), anchor="w")
         
         # Source Selection menu
         source_frame = tk.LabelFrame(left_panel, text="Video Source", bg="#f0f0f0")
@@ -449,7 +455,7 @@ class VisionAssistantGUI:
         try:
             self.model = YOLO(model_path)
             self.labels = self.model.names
-            self.model_label.config(text=os.path.basename(model_path), fg="green")
+            self.model_label.configure(text=os.path.basename(model_path), fg="green")
             self.log_command(f"Model loaded: {os.path.basename(model_path)}")
             speak("Model loaded successfully")
         except Exception as e:
