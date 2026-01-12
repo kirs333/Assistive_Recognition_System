@@ -195,6 +195,42 @@ def do_ocr_on_bbox(frame, bbox):
 def calculate_similarity(text1, text2):
     return SequenceMatcher(None, text1.lower(), text2.lower()).ratio()
 
+# ----best matching medicine 
+def find_best_medicine_match(ocr_text, medicines):
+    best_match = None
+    best_score = 0
+    
+    ocr_lower = ocr_text.lower()
+    
+    for med in medicines:
+        med_id, name, dosage, form, freq, notes, ingredients, created, updated = med
+        
+        # Checking medicine name
+        name_score = calculate_similarity(ocr_lower, name.lower())
+        
+        # Checking active ingredients (anything text that is along with medicine in small letter and such)
+        ingredient_score = 0
+        if ingredients:
+            ingredient_score = calculate_similarity(ocr_lower, ingredients.lower())
+        
+        # Checking if any part of OCR text contains medicine name or ingredients
+        contains_score = 0
+        if name.lower() in ocr_lower or ocr_lower in name.lower():
+            contains_score = 0.8
+        if ingredients and (ingredients.lower() in ocr_lower or ocr_lower in ingredients.lower()):
+            contains_score = max(contains_score, 0.8)
+        
+        # Taking the best score
+        final_score = max(name_score, ingredient_score, contains_score)
+        
+        if final_score > best_score:
+            best_score = final_score
+            best_match = med
+    
+    # Only returning if confidence is about around 40 % for now
+    if best_score > 0.4:
+        return best_match, best_score
+    return None, 0
 
 
 
