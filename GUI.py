@@ -393,19 +393,28 @@ class VisionAssistantGUI:
         ctk.CTkButton(actions_frame, text="Verify Medicine",command=self.verify_medicine,height=35,corner_radius=8,font=ctk.CTkFont(size=13, weight="bold")).pack(fill=tk.X, padx=15, pady=(0, 15))
                 
         # Detected Objects List
-        objects_frame = tk.LabelFrame(left_panel, text="Detected Objects", bg="#f0f0f0")
-        objects_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-        
-        self.objects_listbox = tk.Listbox(objects_frame, height=6)
-        self.objects_listbox.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        objects_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        objects_frame.pack(fill=tk.X, pady=(0, 15))
+
+        ctk.CTkLabel(objects_frame, text="Detected Objects",font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10), padx=15, anchor="w")
+
+        # Creating a frame for the listbox with custom styling
+        listbox_container = ctk.CTkFrame(objects_frame, fg_color=("gray85", "gray20"))
+        listbox_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+
+        self.objects_listbox = tk.Listbox(listbox_container, height=6,bg=("#F0F0F0" if ctk.get_appearance_mode() == "Light" else "#2B2B2B"),fg=("#000000" if ctk.get_appearance_mode() == "Light" else "#FFFFFF"),selectbackground=("#1F6AA5"),selectforeground="white",relief=tk.FLAT,font=("Arial", 11),borderwidth=0,highlightthickness=0)
+        self.objects_listbox.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
         self.objects_listbox.bind('<<ListboxSelect>>', self.on_object_select)
         
         # Voice Command Log
-        log_frame = tk.LabelFrame(left_panel, text="Command Log", bg="#f0f0f0")
-        log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-        
-        self.log_text = scrolledtext.ScrolledText(log_frame, height=5, wrap=tk.WORD)
-        self.log_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        log_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        log_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 0))
+        ctk.CTkLabel(log_frame, text="Command Log",font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10), padx=15, anchor="w")
+
+        log_container = ctk.CTkFrame(log_frame, fg_color=("gray85", "gray20"))
+        log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        self.log_text = tk.Text(log_container, height=5, wrap=tk.WORD,bg=("#F0F0F0" if ctk.get_appearance_mode() == "Light" else "#2B2B2B"),fg=("#000000" if ctk.get_appearance_mode() == "Light" else "#FFFFFF"),relief=tk.FLAT,font=("Courier", 10),borderwidth=0,highlightthickness=0)
+        self.log_text.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
         
         # Right pannel stuff
         # Video canvas
