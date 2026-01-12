@@ -533,6 +533,7 @@ class VisionAssistantGUI:
     
     def update_confidence(self, value):
         self.conf_threshold = float(value)
+        self.conf_value_label.configure(text=f"{value:.2f}")
     
     def select_object(self):
         # This can simply be called by button or voice command
