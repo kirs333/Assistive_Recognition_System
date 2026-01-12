@@ -336,12 +336,10 @@ class VisionAssistantGUI:
         mode_frame = tk.LabelFrame(left_panel, text="Operating Mode", bg="#f0f0f0")
         mode_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        self.scan_btn = tk.Button(mode_frame, text="SCAN Mode", command=self.set_scan_mode, 
-                                  bg="#4CAF50", fg="white", font=("Arial", 10, "bold"))
+        self.scan_btn = tk.Button(mode_frame, text="SCAN Mode", command=self.set_scan_mode, bg="#4CAF50", fg="white", font=("Arial", 10, "bold"))
         self.scan_btn.pack(fill=tk.X, padx=5, pady=2)
         
-        self.guide_btn = tk.Button(mode_frame, text="GUIDE Mode", command=self.set_guide_mode, 
-                                   bg="#808080", fg="white", font=("Arial", 10, "bold"))
+        self.guide_btn = tk.Button(mode_frame, text="GUIDE Mode", command=self.set_guide_mode, bg="#808080", fg="white", font=("Arial", 10, "bold"))
         self.guide_btn.pack(fill=tk.X, padx=5, pady=2)
         
         # Settings
@@ -349,8 +347,7 @@ class VisionAssistantGUI:
         settings_frame.pack(fill=tk.X, padx=10, pady=5)
         
         tk.Label(settings_frame, text="Confidence Threshold:", bg="#f0f0f0").pack(anchor=tk.W, padx=5)
-        self.conf_scale = tk.Scale(settings_frame, from_=0.1, to=1.0, resolution=0.05, 
-                                   orient=tk.HORIZONTAL, command=self.update_confidence)
+        self.conf_scale = tk.Scale(settings_frame, from_=0.1, to=1.0, resolution=0.05, orient=tk.HORIZONTAL, command=self.update_confidence)
         self.conf_scale.set(0.5)
         self.conf_scale.pack(fill=tk.X, padx=5, pady=2)
         
@@ -362,6 +359,7 @@ class VisionAssistantGUI:
         tk.Button(actions_frame, text="Read Text (OCR)", command=self.read_text, bg="#4169E1", fg="white").pack(fill=tk.X, padx=5, pady=2)
         tk.Button(actions_frame, text="Test OCR (Full Frame)", command=self.test_ocr_full_frame).pack(fill=tk.X, padx=5, pady=2)
         tk.Button(actions_frame, text="Capture Image", command=self.capture_image).pack(fill=tk.X, padx=5, pady=2)
+        tk.Button(actions_frame, text="Verify Medicine", command=self.verify_medicine, bg="#FF6B35", fg="white", font=("Arial", 9, "bold")).pack(fill=tk.X, padx=5, pady=2)
         
         # Detected Objects List
         objects_frame = tk.LabelFrame(left_panel, text="Detected Objects", bg="#f0f0f0")
@@ -390,6 +388,13 @@ class VisionAssistantGUI:
         
         self.ocr_text = scrolledtext.ScrolledText(ocr_frame, height=4, wrap=tk.WORD)
         self.ocr_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        #Medicine Verification Result display
+        verify_frame = tk.LabelFrame(right_panel, text="Medicine Verification", bg="#f0f0f0")
+        verify_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        self.verify_text = scrolledtext.ScrolledText(verify_frame, height=4, wrap=tk.WORD)
+        self.verify_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # status bar
         status_bar = tk.Frame(self.root, bg="#333333", height=30)
@@ -516,7 +521,6 @@ class VisionAssistantGUI:
             speak("Image captured")
     
     def test_ocr_full_frame(self):
-        """Test OCR on the entire current frame"""
         if not hasattr(self, 'current_frame') or self.current_frame is None:
             speak("No frame available")
             self.log_command("No frame for OCR test")
@@ -612,7 +616,7 @@ class VisionAssistantGUI:
                 
                 # Multi-frame OCR for better results
                 ocr_results = []
-                frames_to_process = 3  # Reduced from 5 for faster response
+                frames_to_process = 3  # Currently working best at 3 fps
                 
                 for attempt in range(frames_to_process):
                     if self.cap and self.capturing:
@@ -651,18 +655,109 @@ class VisionAssistantGUI:
                 else:
                     self.log_command("No text detected in any frame")
                     speak("No readable text found. Try better lighting or hold object steady")
-                    
-                    # Saveing debug image
-                    try:
-                        debug_crop = self.current_frame[ymin:ymax, xmin:xmax]
-                        cv2.imwrite('ocr_debug.png', debug_crop)
-                        self.log_command("Saved debug crop to ocr_debug.png")
-                    except:
-                        pass
         else:
             speak("Please select an object first in guide mode")
             self.log_command("No object selected for OCR")
     
+
+
+    # verifying if whether the detected medicien is safe to take or not.
+    def verify_medicine(self):
+
+        # Geting the OCR text
+        ocr_text = self.ocr_text.get('1.0', tk.END).strip()
+        
+        if not ocr_text:
+            speak("Please read the medicine text first")
+            self.log_command("No OCR text available for verification")
+            return
+        
+        speak("Verifying medicine")
+        self.log_command(f"Verifying: {ocr_text[:50]}...")
+        
+        # Get all medicines from database
+        medicines = self.medicine_db.get_all_medicines()
+        
+        if not medicines:
+            speak("No medicines in database. Please add your medicines first")
+            self.verify_text.delete('1.0', tk.END)
+            self.verify_text.insert('1.0', "No medicines in the database\n\nPlease add your medicines in the database first.")
+            return
+        
+        # Find best match
+        matched_med, confidence = find_best_medicine_match(ocr_text, medicines)
+        
+        if not matched_med:
+            speak("This medicine is not in your database. Please consult your doctor")
+            self.verify_text.delete('1.0', tk.END)
+            self.verify_text.insert('1.0', f"UNRECOGNIZED MEDICINE\n\n")
+            self.verify_text.insert(tk.END, f"Medicine not found in your database.\n\n")
+            self.verify_text.insert(tk.END, f"IMPORTANT: Do not take this medicine without consulting your doctor.\n\n")
+            speak("PLEASE TAKE ASSISTANCE. PLEASE REQUEST ASSISTANCE")
+            self.verify_text.insert(tk.END, f"Detected text: {ocr_text[:100]}")
+            self.log_command("Medicine not found in database")
+            return
+        
+        # Medicine found THEN we will extract details
+        med_id, name, dosage, form, freq, notes, ingredients, created, updated = matched_med
+        
+        self.log_command(f"Matched: {name} (confidence: {confidence:.2%})")
+        
+        # Checking schedule
+        is_scheduled, schedule, time_diff = check_medicine_schedule(med_id, self.medicine_db)
+        
+        # Building verification message
+        verify_msg = f"MEDICINE IDENTIFIED\n\n"
+        verify_msg += f"Medicine: {name}\n"
+        verify_msg += f"Dosage: {dosage}\n"
+        verify_msg += f"Form: {form}\n"
+        verify_msg += f"Frequency: {freq}\n"
+        verify_msg += f"Match Confidence: {confidence:.1%}\n\n"
+        
+        if is_scheduled:
+            scheduled_time = schedule[2]
+            with_food = schedule[3]
+            instructions = schedule[4]
+            
+            verify_msg += f"SCHEDULED NOW\n\n"
+            verify_msg += f"Scheduled time: {scheduled_time}\n"
+            verify_msg += f"Time difference: {int(time_diff)} minutes\n"
+            verify_msg += f"With food: {with_food}\n"
+            
+            if instructions:
+                verify_msg += f"Instructions: {instructions}\n"
+            
+            verify_msg += f"\nSAFE TO TAKE NOW"
+            
+            speak(f"This is {name}. It is scheduled for now. Safe to take")
+        else:
+            # Checking if it has any schedules
+            all_schedules = self.medicine_db.get_schedules_for_medicine(med_id)
+            
+            if all_schedules:
+                verify_msg += f"NOT SCHEDULED NOW\n\n"
+                verify_msg += f"This medicine is in your list but not scheduled for current time.\n\n"
+                verify_msg += f"Scheduled times:\n"
+                for sch in all_schedules:
+                    verify_msg += f"  • {sch[2]} - {sch[3]}\n"
+                verify_msg += f"\n❗ Check with doctor if unsure"
+                speak(f"This is {name}. But it is not scheduled for now. Check your schedule")
+            else:
+                verify_msg += f"NO SCHEDULE SET\n\n"
+                verify_msg += f"This medicine is in your database but has no intake schedule.\n"
+                verify_msg += f"\nTake as prescribed by doctor"
+                speak(f"This is {name}. No schedule set. Take as only prescribed by doctor")
+        
+        if notes:
+            verify_msg += f"\n\nNotes: {notes}"
+        
+        # Displaying in GUI
+        self.verify_text.delete('1.0', tk.END)
+        self.verify_text.insert('1.0', verify_msg)
+        
+        self.log_command(f"Verification complete: {name}")
+
+
     def process_video(self):
         global spoken_objects_global, detection_start_time, last_guidance_time
         
