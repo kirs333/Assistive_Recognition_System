@@ -418,16 +418,29 @@ class VisionAssistantGUI:
         
         # Right pannel stuff
         # Video canvas
-        self.canvas = tk.Canvas(right_panel, bg="#000000", width=640, height=480)
-        self.canvas.pack(fill=tk.BOTH, expand=True)
+        video_frame = ctk.CTkFrame(right_panel, corner_radius=10)
+        video_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+
+        video_header = ctk.CTkFrame(video_frame, fg_color="transparent")
+        video_header.pack(fill=tk.X, padx=15, pady=(15, 10))
+
+        ctk.CTkLabel(video_header, text="Live Feed",font=ctk.CTkFont(size=18, weight="bold")).pack(side=tk.LEFT)
+
+        # Canvas for the video display
+        canvas_container = ctk.CTkFrame(video_frame, fg_color=("gray90", "gray15"))
+        canvas_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        self.canvas = tk.Canvas(canvas_container, bg="#000000", highlightthickness=0, relief=tk.FLAT)
+        self.canvas.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
         self.canvas.update()  # Force updateing to get actual size
         
         # OCR Results
-        ocr_frame = tk.LabelFrame(right_panel, text="OCR Results", bg="#f0f0f0")
-        ocr_frame.pack(fill=tk.X, padx=5, pady=5)
-        
-        self.ocr_text = scrolledtext.ScrolledText(ocr_frame, height=4, wrap=tk.WORD)
-        self.ocr_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        ocr_frame = ctk.CTkFrame(right_panel, corner_radius=10)
+        ocr_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
+        ctk.CTkLabel(ocr_frame, text="OCR Results",font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10), padx=15, anchor="w")
+        ocr_container = ctk.CTkFrame(ocr_frame, fg_color=("gray85", "gray20"))
+        ocr_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        self.ocr_text = tk.Text(ocr_container, height=4, wrap=tk.WORD,bg=("#F0F0F0" if ctk.get_appearance_mode() == "Light" else "#2B2B2B"),fg=("#000000" if ctk.get_appearance_mode() == "Light" else "#FFFFFF"),relief=tk.FLAT,font=("Arial", 11),borderwidth=0,highlightthickness=0)
+        self.ocr_text.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
         
         #Medicine Verification Result display
         verify_frame = tk.LabelFrame(right_panel, text="Medicine Verification", bg="#f0f0f0")
