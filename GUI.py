@@ -342,23 +342,29 @@ class VisionAssistantGUI:
         self.model_label = ctk.CTkLabel(model_frame, text="No model loaded",text_color=("red", "pink"),font=ctk.CTkFont(size=11))
         self.model_label.pack(padx=15, pady=(0, 15), anchor="w")
         
-        # Source Selection menu
-        source_frame = tk.LabelFrame(left_panel, text="Video Source", bg="#f0f0f0")
-        source_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        tk.Button(source_frame, text="Webcam", command=self.start_webcam).pack(fill=tk.X, padx=5, pady=2)
-        tk.Button(source_frame, text="Video File", command=self.load_video).pack(fill=tk.X, padx=5, pady=2)
-        tk.Button(source_frame, text="Stop", command=self.stop_capture, bg="#ff6b6b").pack(fill=tk.X, padx=5, pady=2)
-        
+        # Video Source Selection menu
+
+        source_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        source_frame.pack(fill=tk.X, pady=(0, 15))
+
+        ctk.CTkLabel(source_frame, text="Video Source",font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10), padx=15, anchor="w")
+
+        ctk.CTkButton(source_frame, text="Webcam",command=self.start_webcam,height=35,corner_radius=8,font=ctk.CTkFont(size=13)).pack(fill=tk.X, padx=15, pady=(0, 5))
+        ctk.CTkButton(source_frame, text="Video File",command=self.load_video,height=35,corner_radius=8,font=ctk.CTkFont(size=13)).pack(fill=tk.X, padx=15, pady=(0, 5))
+        ctk.CTkButton(source_frame, text="Stop",command=self.stop_capture,height=35,corner_radius=8,font=ctk.CTkFont(size=13)).pack(fill=tk.X, padx=15, pady=(0, 15))
+
+
         # Mode Selection
-        mode_frame = tk.LabelFrame(left_panel, text="Operating Mode", bg="#f0f0f0")
-        mode_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        self.scan_btn = tk.Button(mode_frame, text="SCAN Mode", command=self.set_scan_mode, bg="#4CAF50", fg="white", font=("Arial", 10, "bold"))
-        self.scan_btn.pack(fill=tk.X, padx=5, pady=2)
-        
-        self.guide_btn = tk.Button(mode_frame, text="GUIDE Mode", command=self.set_guide_mode, bg="#808080", fg="white", font=("Arial", 10, "bold"))
-        self.guide_btn.pack(fill=tk.X, padx=5, pady=2)
+        mode_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        mode_frame.pack(fill=tk.X, pady=(0, 15))
+
+        ctk.CTkLabel(mode_frame, text="Operating Mode",font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10), padx=15, anchor="w")
+
+        self.scan_btn = ctk.CTkButton(mode_frame, text="SCAN Mode",command=self.set_scan_mode,height=40,corner_radius=8,font=ctk.CTkFont(size=14, weight="bold"))
+        self.scan_btn.pack(fill=tk.X, padx=15, pady=(0, 8))
+
+        self.guide_btn = ctk.CTkButton(mode_frame, text="GUIDE Mode",command=self.set_guide_mode,height=40,corner_radius=8,font=ctk.CTkFont(size=14, weight="bold"))
+        self.guide_btn.pack(fill=tk.X, padx=15, pady=(0, 15))
         
         # Settings
         settings_frame = tk.LabelFrame(left_panel, text="Settings", bg="#f0f0f0")
@@ -507,8 +513,6 @@ class VisionAssistantGUI:
     def set_scan_mode(self):
         global last_guidance_time
         self.current_state = STATE_SCAN
-        self.scan_btn.config(bg="#4CAF50")
-        self.guide_btn.config(bg="#808080")
         last_guidance_time.clear()
         self.log_command("Mode: SCAN")
         speak("Scan mode")
@@ -516,8 +520,6 @@ class VisionAssistantGUI:
     def set_guide_mode(self):
         global last_guidance_time
         self.current_state = STATE_GUIDE
-        self.guide_btn.config(bg="#4CAF50")
-        self.scan_btn.config(bg="#808080")
         last_guidance_time.clear()
         self.log_command("Mode: GUIDE")
         speak("Guide mode")
