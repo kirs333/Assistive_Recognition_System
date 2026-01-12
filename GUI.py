@@ -305,22 +305,28 @@ class VisionAssistantGUI:
         
     def setup_ui(self):
         # Main container
-        main_frame = tk.Frame(self.root)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main_frame = ctk.CTkFrame(self.root, fg_color="transparent")
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Left panel
-        left_panel = tk.Frame(main_frame, width=300, bg="#f0f0f0")
-        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, padx=5, pady=5)
+        left_panel = ctk.CTkFrame(main_frame, width=350, corner_radius=15)
+        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, padx=(0, 10), pady=0)
         left_panel.pack_propagate(False)
         
         # Right panel
-        right_panel = tk.Frame(main_frame, bg="#000000")
-        right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+        right_panel = ctk.CTkFrame(main_frame, corner_radius=15)
+        right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=0, pady=0)
         
         #left panel stuff
         # Title
-        title_label = tk.Label(left_panel, text="Vision Assistant", font=("Arial", 16, "bold"), bg="#f0f0f0")
-        title_label.pack(pady=10)
+        title_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
+        title_frame.pack(pady=20, padx=20)
+
+        title_label = ctk.CTkLabel(title_frame, text="Vision Assistant", font=ctk.CTkFont(size=24, weight="bold"))
+        title_label.pack()
+
+        subtitle_label = ctk.CTkLabel(title_frame, text="AI-Powered Object Detection & OCR",font=ctk.CTkFont(size=12),text_color=("gray60", "gray50"))
+        subtitle_label.pack()
         
         # Model Selection menu
         model_frame = tk.LabelFrame(left_panel, text="Model", bg="#f0f0f0")
