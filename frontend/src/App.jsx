@@ -27,7 +27,7 @@ function App() {
     },
   });
 
-  // Handleing incoming messages
+  // Handleing incoming messages from WebSocket
   useEffect(() => {
     if (!lastMessage) return;
 
