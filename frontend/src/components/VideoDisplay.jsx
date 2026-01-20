@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 
+
+/// Color for bounding boxes
 const BBOX_COLORS = [
   "#A47857",
   "#4494E4",
@@ -13,15 +15,21 @@ const BBOX_COLORS = [
   "#ACB0B8",
 ];
 
+
+/// draw detected object boxes in canvas
 function drawDetections(ctx, detections) {
   detections.forEach((det) => {
     const [xmin, ymin, xmax, ymax] = det.bbox;
     const color = BBOX_COLORS[det.class_id % BBOX_COLORS.length];
 
+
+    /// draw bounding box
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.strokeRect(xmin, ymin, xmax - xmin, ymax - ymin);
 
+
+    /// draw label
     const label = `${det.class} ${det.confidence.toFixed(2)}`;
     ctx.font = "14px Inter, Arial, sans-serif";
 
